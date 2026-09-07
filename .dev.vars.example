@@ -1,0 +1,20 @@
+# primodaya-crm — sample environment variables
+# Copy to `.dev.vars` for local dev and set equivalents via `wrangler secret put` / Pages vars.
+# NOTE: `DB` (D1) and `EMAIL` (Email Sending) bindings are wired in `wrangler.jsonc`, NOT env vars.
+# The values below match `wrangler.jsonc` defaults; uncomment/override locally as needed.
+
+# Canonical app URL (drives WhatsApp deep links, QR targets, emails) — PRD §1.1
+#APP_URL=https://primodaya.gladia98.com
+
+# Discount governance constants — PRD §3
+#MAX_SALES_DISCOUNT=10
+#MAX_MANAGER_DISCOUNT=25
+
+# Transactional email sender (must be a verified Email Sending address) — PRD §8.1
+#EMAIL_FROM=no-reply@primodaya.gladia98.com
+
+# Super Admin WhatsApp number for acceptance redirects — PRD §8.3
+#SUPER_ADMIN_WHATSAPP=6281234567890
+
+# DB Admin Console kill-switch — PRD §9.5 (keep false in production unless administering)
+#DB_ADMIN_ENABLED=false

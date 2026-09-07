@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "types": ["@cloudflare/workers-types", "vite/client"],
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "rootDirs": [".", "./.react-router/types"]
+  },
+  "include": [
+    ".react-router/types/**/*",
+    "app/**/*",
+    "workers/**/*",
+    "db/**/*",
+    "vite.config.ts",
+    "react-router.config.ts",
+    "drizzle.config.ts",
+    "worker-configuration.d.ts"
+  ]
+}

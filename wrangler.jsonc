@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "primodaya-crm",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "primodaya-crm-db",
+      // Create with `wrangler d1 create primodaya-crm-db` and paste the real id:
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "send_email": [{ "name": "EMAIL" }],
+  "vars": {
+    "APP_URL": "https://primodaya.gladia98.com",
+    "MAX_SALES_DISCOUNT": "10",
+    "MAX_MANAGER_DISCOUNT": "25",
+    "DB_ADMIN_ENABLED": "false",
+    "EMAIL_FROM": "no-reply@primodaya.gladia98.com",
+    "SUPER_ADMIN_WHATSAPP": "6281234567890"
+  }
+}
