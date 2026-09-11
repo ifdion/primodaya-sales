@@ -58,11 +58,10 @@ export async function getAccountForRequest(
   });
   if (!session || new Date(session.expiresAt) < new Date()) return null;
 
-  return (
-    (await db.query.accounts.findFirst({
-      where: eq(accounts.id, session.accountId),
-    })) ?? null
-  );
+  const account = await db.query.accounts.findFirst({
+    where: eq(accounts.id, session.accountId),
+  });
+  return account && account.active ? account : null;
 }
 
 export function requireAccount(account: AccountRow | null): AccountRow {

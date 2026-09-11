@@ -1,65 +1,108 @@
-export interface EmailMessage {
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+
+async function sendBrevo({
+  apiKey,
+  to,
+  fromEmail,
+  fromName,
+  subject,
+  html,
+}: {
+  apiKey: string;
   to: string;
-  from: string;
+  fromEmail: string;
+  fromName: string;
   subject: string;
   html: string;
-  text?: string;
-}
-
-export interface SendEmailBinding {
-  send(message: EmailMessage): Promise<unknown>;
-}
-
-export async function sendManagerNotification({
-  email,
-  from,
-  managerEmail,
-  leadName,
-  salesName,
-}: {
-  email: SendEmailBinding;
-  from: string;
-  managerEmail: string;
-  leadName: string;
-  salesName: string;
 }): Promise<boolean> {
   try {
-    await email.send({
-      to: managerEmail,
-      from,
-      subject: `[Pricing Update] Offer Generated for ${leadName}`,
-      html: `<p>Super Admin has assigned pricing and validity for lead <strong>${leadName}</strong> (Sales Rep: ${salesName}).</p>`,
+    const response = await fetch(BREVO_ENDPOINT, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
-    return true;
+    return response.ok;
   } catch {
     return false;
   }
 }
 
+export async function sendManagerNotification({
+  apiKey,
+  from,
+  managerEmail,
+  leadName,
+  salesName,
+}: {
+  apiKey: string;
+  from: string;
+  managerEmail: string;
+  leadName: string;
+  salesName: string;
+}): Promise<boolean> {
+  return sendBrevo({
+    apiKey,
+    to: managerEmail,
+    fromEmail: from,
+    fromName: "Primodaya CRM",
+    subject: `[Pricing Update] Offer Generated for ${leadName}`,
+    html: `<p>Super Admin has assigned pricing and validity for lead <strong>${leadName}</strong> (Sales Rep: ${salesName}).</p>`,
+  });
+}
+
+export async function sendPasswordReset({
+  apiKey,
+  from,
+  to,
+  name,
+  resetUrl,
+}: {
+  apiKey: string;
+  from: string;
+  to: string;
+  name: string;
+  resetUrl: string;
+}): Promise<boolean> {
+  return sendBrevo({
+    apiKey,
+    to,
+    fromEmail: from,
+    fromName: "Primodaya CRM",
+    subject: "Primodaya CRM — password reset",
+    html: `<p>Hi ${name},</p><p>Someone requested a password reset for your Primodaya CRM account. Set a new password here (valid for 60 minutes): <a href="${resetUrl}">${resetUrl}</a></p><p>If this wasn't you, you can ignore this email.</p>`,
+  });
+}
+
 export async function sendInvite({
-  email,
+  apiKey,
   from,
   to,
   name,
   setupUrl,
   inviterName,
 }: {
-  email: SendEmailBinding;
+  apiKey: string;
   from: string;
   to: string;
   name: string;
   setupUrl: string;
   inviterName: string;
 }): Promise<boolean> {
-  try {
-    await email.send({
-      to,
-      from,
-      subject: `You are invited to join the Primodaya CRM`,
-      html: `<p>Hi ${name},</p><p>${inviterName} invited you to the Primodaya CRM. Set up your account here: <a href="${setupUrl}">${setupUrl}</a></p>`,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  return sendBrevo({
+    apiKey,
+    to,
+    fromEmail: from,
+    fromName: "Primodaya CRM",
+    subject: "You are invited to join the Primodaya CRM",
+    html: `<p>Hi ${name},</p><p>${inviterName} invited you to the Primodaya CRM. Set up your account here: <a href="${setupUrl}">${setupUrl}</a></p>`,
+  });
 }

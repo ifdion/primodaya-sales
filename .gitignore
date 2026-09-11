@@ -5,3 +5,5 @@ build/
 .react-router/
 dist/
 .env
+local-notes.md
+*.tsbuildinfo

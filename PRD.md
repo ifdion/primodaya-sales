@@ -4,7 +4,7 @@
 
 **primodaya-crm** is a lightweight, high-velocity CRM platform engineered specifically for integrated electrical power ecosystem sales — wallbox EV chargers, battery storage, hybrid inverters, and solar panels delivered as packaged solutions — and their lead pipelines. It streamlines communication across four key user personas (**Super Admin**, **Sales Manager**, **Sales Representative**, and **Lead**) by integrating dynamic digital proposal generation, real-time link tracking, automated discount governance, and seamless WhatsApp communication workflows.
 
-The entire infrastructure runs on **Cloudflare Workers (`primodaya.gladia98.com` via custom domain)** — a single **React + Vite (SSR)** codebase built with **React Router v7 framework mode** (with **Cloudflare D1**, **Drizzle ORM**, **Cloudflare Email Service**, and **Tailwind CSS**) — serving three application surfaces: an SSR landing page at the domain root, the CRM under `/crm/*`, and a database admin console under `/db/*`. Deployment is `npm run build && wrangler deploy` using the `@cloudflare/vite-plugin` (one Worker: SSR handler + static assets).
+The entire infrastructure runs on **Cloudflare Workers (`primodaya.gladia98.com` via custom domain)** — a single **React + Vite (SSR)** codebase built with **React Router v7 framework mode** (with **Cloudflare D1**, **Drizzle ORM**, **Brevo**, and **Tailwind CSS**) — serving three application surfaces: an SSR landing page at the domain root, the CRM under `/crm/*`, and a database admin console under `/db/*`. Deployment is `npm run build && wrangler deploy` using the `@cloudflare/vite-plugin` (one Worker: SSR handler + static assets).
 
 ### 1.1 Application Surfaces & URL Map
 
@@ -54,7 +54,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
 | Role                     | System Scope   | Core Responsibilities & Administrative Rights                                                                                                                                                   |
 | ------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Super Admin**          | System-Wide    | Invites Sales Managers, assigns base pricing and offer validity dates, tracks lead proposal views, receives digital offer acceptances via WhatsApp, manually updates lead status to `ACCEPTED`, administers raw D1 data through the DB console (`/db/*`). |
-| **Sales Manager**        | Team / Branch  | Registers Sales Representatives, receives transactional email alerts via Cloudflare Email Service upon pricing updates, authorizes elevated manager discount caps up to `MAX_MANAGER_DISCOUNT`.            |
+| **Sales Manager**        | Team / Branch  | Registers Sales Representatives, receives transactional email alerts via Brevo upon pricing updates, authorizes elevated manager discount caps up to `MAX_MANAGER_DISCOUNT`.            |
 | **Sales Representative** | Assigned Leads | Creates leads, applies standard discounts ($\le$ `MAX_SALES_DISCOUNT`), requests manager discount overrides, shares proposal links via WhatsApp.                                                |
 | **Lead (Customer)**      | Public Access  | Views online PDF proposals, scans dynamic QR codes for validity checks, sends pre-formatted acceptance messages directly to Super Admin via WhatsApp.                                           |
 | **Prospect (Visitor)**   | Public Landing | Browses the SSR landing page and packaged tier catalog, initiates sales contact via WhatsApp CTA, and navigates to the CRM sign-in.                                                             |
@@ -65,7 +65,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
 
 ```
                           [SUPER ADMIN]
-                                │ (Invites via CF Email)
+                                │ (Invites via Brevo Email)
                                 ▼
                          [SALES MANAGER]
                                 │ (Registers Account)
@@ -101,7 +101,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
 ### 5.1 Onboarding Process (Pre-Requisite)
 
 0. **First-Run Bootstrap**: On an empty database, `/crm/login` redirects to `/crm/setup`, where the first Super Admin account is created (one-time; route self-disables once any account exists).
-1. **Super Admin Invites Manager**: Super Admin inputs the Sales Manager's name and email. The system dispatches an onboarding invitation via **Cloudflare Email Service** containing a secure setup token (72 h expiry, one-time use, marked used on acceptance).
+1. **Super Admin Invites Manager**: Super Admin inputs the Sales Manager's name and email. The system dispatches an onboarding invitation via **Brevo** containing a secure setup token (72 h expiry, one-time use, marked used on acceptance).
 2. **Manager Onboards Sales**: Sales Manager accesses their team portal to register and provision credentials for new Sales Representatives.
 
 ---
@@ -121,7 +121,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
 - **System Action**:
 
 1. Updates lead status to `OFFER_GENERATED`.
-2. Dispatches a notification email to the assigned **Sales Manager** via Cloudflare Email Service.
+2. Dispatches a notification email to the assigned **Sales Manager** via Brevo.
 3. Generates a pre-formatted WhatsApp deep-link targeted at the assigned **Sales Representative**:
 
 > `"Offering for [Lead Name] is ready. Download a PDF here [https://primodaya.gladia98.com/offering/](https://primodaya.gladia98.com/offering/)[Unique_Offer_ID]"`
@@ -202,7 +202,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                       CLOUDFLARE WORKERS EDGE RUNTIME                │
+│                       CLOUDFLARE WORKERS EDGE RUNTIME                 │
 │                                                                        │
 │   ┌──────────────────────────────────────────────────────────────┐     │
 │   │                       REACT + VITE APP                       │     │
@@ -229,7 +229,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
               │                                           │
               ▼                                           ▼
    ┌──────────────────────┐                   ┌───────────────────────┐
-   │    Drizzle ORM       │                   │   Cloudflare Email    │
+   │    Drizzle ORM       │                   │      Brevo API        │
    │ (Type-Safe Queries)  │                   │ (Transactional Email) │
    └──────────────────────┘                   └───────────────────────┘
 
@@ -241,7 +241,7 @@ MAX_MANAGER_DISCOUNT=25    # Maximum ceiling (%) unlocked upon Sales Manager app
 | **Hosting Platform**    | **Cloudflare Workers (`@cloudflare/vite-plugin`, `wrangler deploy`)** | One Worker + static assets on custom domain `primodaya.gladia98.com`: SSR landing at `/`, CRM at `/crm/*`, DB console at `/db/*`; edge delivery, zero cold starts. |
 | **Database**            | **Cloudflare D1 (SQLite)**                                 | Serverless edge SQL database offering sub-millisecond query execution.                                                    |
 | **ORM Layer**           | **Drizzle ORM**                                            | Lightweight, type-safe query builder tailored for SQLite and Cloudflare D1 integration.                                   |
-| **Transactional Email** | **Cloudflare Email Sending (Workers binding)**                 | Native outbound email on the same platform, with managed DKIM/SPF and no third-party vendor.                                |
+| **Transactional Email** | **Brevo REST API**                                         | Invite + pricing alerts via `POST /v3/smtp/email`; API key held as a Worker secret (`BREVO_API_KEY`); sender verified in Brevo. |
 | **Authentication**      | **Cookie sessions over D1 (`sessions` table)**             | HttpOnly `SameSite=Lax` cookie; PBKDF2-SHA256 (WebCrypto) password hashing; guards enforced in React Router loaders/actions. |
 | **PDF Generation**      | **`pdf-lib` (selected) + `qrcode-generator`**              | Edge-runtime-compatible compilation; QR matrix rendered as PDF rectangles. `@react-pdf/renderer` rejected as Workers-hostile. |
 | **DB Administration**   | **Super-Admin SQL console (interim) · Drizzle Studio local** | `/db/*` console runs statements against the D1 binding with audit logging; `drizzle-kit studio` remains the full local tool. |
@@ -362,46 +362,48 @@ Both `accounts` and `leads` are directly browsable and editable through the DB A
 
 ## 8. Core Application Implementation Logic
 
-### 8.1 Cloudflare Email Dispatch Wrapper (`app/lib/email.server.ts`)
+### 8.1 Brevo Email Dispatch Wrapper (`app/lib/email.server.ts`)
 
 ```typescript
-// Requires the Email Sending `EMAIL` binding:
-// wrangler.jsonc → { "send_email": [{ "name": "EMAIL" }] }
-interface SendEmailBinding {
-  send(message: {
-    to: string;
-    from: string;
-    subject: string;
-    html: string;
-    text?: string;
-  }): Promise<void>;
-}
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
-export async function sendManagerNotification({
-  email,
-  from,
-  managerEmail,
-  leadName,
-  salesName,
+async function sendBrevo({
+  apiKey, to, fromEmail, fromName, subject, html,
 }: {
-  email: SendEmailBinding;
-  from: string; // config: EMAIL_FROM (verified sending address)
-  managerEmail: string;
-  leadName: string;
-  salesName: string;
-}) {
+  apiKey: string; to: string; fromEmail: string;
+  fromName: string; subject: string; html: string;
+}): Promise<boolean> {
   try {
-    await email.send({
-      to: managerEmail,
-      from,
-      subject: `[Pricing Update] Offer Generated for ${leadName}`,
-      html: `<p>Super Admin has assigned pricing and validity for lead <strong>${leadName}</strong> (Sales Rep: ${salesName}).</p>`,
+    const response = await fetch(BREVO_ENDPOINT, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey, // secret: BREVO_API_KEY
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail }, // config: EMAIL_FROM
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
-    return true;
+    return response.ok;
   } catch {
-    return false;
+    return false; // never block a business flow on email delivery
   }
 }
+
+export async function sendManagerNotification({ apiKey, from, managerEmail, leadName, salesName }: {
+  apiKey: string; from: string; managerEmail: string; leadName: string; salesName: string;
+}) {
+  return sendBrevo({
+    apiKey, to: managerEmail, fromEmail: from, fromName: "Primodaya CRM",
+    subject: `[Pricing Update] Offer Generated for ${leadName}`,
+    html: `<p>Super Admin has assigned pricing and validity for lead <strong>${leadName}</strong> (Sales Rep: ${salesName}).</p>`,
+  });
+}
+// sendInvite() uses the same sendBrevo() helper for onboarding tokens.
 ```
 
 ### 8.2 Proposal Route with Analytics Tracking (`app/routes/offering.$id.tsx`)
@@ -529,5 +531,5 @@ export default function VerifyPage() {
 1. **Role-Based Access Control (RBAC)**: Enforced by the `requireAccount` / `requireRole` helpers inside React Router loaders and actions (`app/lib/auth.server.ts`), with D1-backed cookie sessions. Public surfaces (`/`, `/offering/*`, `/verify/*`) remain readable; the CRM subtree (`/crm/*`, except `/crm/login`) enforces valid cookie sessions; the DB console (`/db/*`) is Super Admin-only (§9.5).
 2. **Discount Validation Guardrails**: Backend validations reject discount payloads exceeding maximum thresholds (`10%` for Sales, `25%` for Managers).
 3. **Deep Link Safety**: All WhatsApp deep links execute explicit UTF-8 URL encoding on URL parameters (`wa.me/{phone}?text={encoded_string}`).
-4. **Environment Security**: Bindings (`DB`, `EMAIL`) and Worker `vars` (`APP_URL`, `MAX_SALES_DISCOUNT`, `MAX_MANAGER_DISCOUNT`, `EMAIL_FROM`, `SUPER_ADMIN_WHATSAPP`, `DB_ADMIN_ENABLED`) are configured in `wrangler.jsonc` / `.dev.vars`; anything sensitive moves to `wrangler secret put` before production.
+4. **Environment Security**: D1 binding (`DB`) and Worker `vars` (`APP_URL`, `MAX_SALES_DISCOUNT`, `MAX_MANAGER_DISCOUNT`, `EMAIL_FROM`, `SUPER_ADMIN_WHATSAPP`, `DB_ADMIN_ENABLED`) are configured in `wrangler.jsonc` / `.dev.vars`. The Brevo credential is a **secret only** — `npx wrangler secret put BREVO_API_KEY` (production) / `BREVO_API_KEY=...` in `.dev.vars` (local, gitignored) — and must never appear in `wrangler.jsonc`, repo, or client bundles.
 5. **DB Admin Console Hardening (`/db/*`)**: Shipped interim build — Super-Admin SQL console over the D1 binding, RBAC-guarded and behind the `DB_ADMIN_ENABLED` kill-switch (default `off`, returns 404 when disabled); all writes are audit-logged. Production plan: edge second gate (Cloudflare Access service token / IP allow-list), destructive-operation confirmation, full Drizzle Studio embedding — or keep `/db/*` off and administer locally via `drizzle-kit studio` + `getPlatformProxy`.

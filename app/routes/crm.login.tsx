@@ -7,6 +7,7 @@ import { getEnv } from "../lib/platform";
 import { verifyPassword } from "../lib/password";
 import { getAccountForRequest, loginAccount } from "../lib/auth.server";
 import { logAudit } from "../lib/audit.server";
+import { PasswordInput } from "../components/password-input";
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const env = getEnv(context);
@@ -36,6 +37,9 @@ export async function action({ request, context }: ActionFunctionArgs) {
   });
   if (!account || !(await verifyPassword(password, account.passwordHash))) {
     return { error: "Invalid email or password." };
+  }
+  if (!account.active) {
+    return { error: "This account is disabled. Contact your administrator." };
   }
 
   const cookie = await loginAccount(account.id, context);
@@ -68,18 +72,24 @@ export default function Login() {
             <label className="block text-sm font-medium" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-            />
+            <div className="mt-1">
+              <PasswordInput
+                id="password"
+                name="password"
+                required
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
           </div>
           {data && "error" in data && data.error ? (
             <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{data.error}</p>
           ) : null}
+          <div className="flex items-center justify-between text-xs">
+            <Link to="/crm/forgot-password" className="text-emerald-700 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <button
             type="submit"
             className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"

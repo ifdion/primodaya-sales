@@ -9,7 +9,7 @@ Derived from `PRD.md`. Each task references its source section. Sizes: **S** (< 
 - [x] **0.1** Scaffold React 19 + Vite + TypeScript app with `@cloudflare/vite-plugin` (SSR on Cloudflare Pages) — **M**
 - [x] **0.2** Configure Tailwind CSS — **S**
 - [ ] **0.3** Provision Cloudflare D1 instance + bind in `wrangler.jsonc` (`DB`) — **S**
-- [ ] **0.4** Configure Cloudflare Email Sending: verify sending domain, add `send_email` binding (`EMAIL`) in `wrangler.jsonc` — **S**
+- [ ] **0.4** Configure Brevo: verify `EMAIL_FROM` sender (domain or address) in Brevo, then `npx wrangler secret put BREVO_API_KEY` — **S**
 - [x] **0.5** Set governance env vars `MAX_SALES_DISCOUNT=10`, `MAX_MANAGER_DISCOUNT=25` (`.dev.vars` local + Pages project vars/secret) — **S**
 - [ ] **0.6** Create Pages project, attach custom domain `primodaya.gladia98.com`, confirm DNS/TLS — **S**
 - [x] **0.7** Central typed config/env module (reads bindings + vars; fails fast if missing) — **S**
@@ -51,7 +51,7 @@ Derived from `PRD.md`. Each task references its source section. Sizes: **S** (< 
 
 ## Epic 3 — Email Notifications (PRD §8.1)
 
-- [x] **3.1** Implement `src/lib/email.ts` wrapper on `EMAIL` binding (per PRD §8.1 sample) — **S**
+- [x] **3.1** Implement `app/lib/email.server.ts` wrapper over Brevo REST (`POST /v3/smtp/email`; swapped back from Cloudflare Email Sending) — **S**
 - [x] **3.2** Templates: manager onboarding invitation (with setup link), pricing update alert — **M**
 - [x] **3.3** Wire pricing-assignment action (Epic 4) and onboarding (Epic 2) to dispatch email — **S**
 - [ ] **3.4** Delivery smoke test against verified sending address; failure path returns `false` without breaking transaction — **S**
@@ -165,6 +165,6 @@ Critical path: **1.3 schema → 2 auth → 4.4 pricing → 5.1 PDF → 6.1 verif
 
 Implemented and verified locally (`wrangler d1 --local` + HTTP E2E via curl): first-run setup → Super Admin login → manager/rep invite flow → lead creation → pricing assignment + status transitions → discount cap rejection (11% vs 10%) → manager override → re-applied discount + WhatsApp deep link → offering SSR + `viewed_at` stamp → live PDF render (`%PDF-1.7`, QR included) → verify redirect `302 wa.me` with acceptance message → `PRE_ACCEPTED` → `ACCEPTED` → expired-offer screen → 404 on tampered offer ids → `/db` console returns 404 while `DB_ADMIN_ENABLED=false`.
 
-Still open (require Cloudflare account or device): 0.3 remote D1 provisioning (`wrangler d1 create` + real `database_id`), 0.4 verified sending domain, 0.6 deploy + `primodaya.gladia98.com` DNS, 0.8 CI/CD, 3.4 real email delivery, 8.2 Cloudflare Access/WAF rules, 8.4 remaining negative matrices beyond the smoke set, 8.5 mobile QR scan check, 8.6 production deploy, 9.4 JSON-LD/sitemap, 10.1 full Drizzle Studio embed (interim Super-Admin SQL console shipped), 10.4 destructive-op warning banner.
+Deployed: `primodaya-crm` Worker live on `https://primodaya.gladia98.com` (custom domain, remote D1 migrated, first-run setup pending). Still open (need account or device): 0.4 Brevo sender verification + `BREVO_API_KEY` secret (emails degrade to manual share links until set), 0.8 CI/CD, 3.4 real email delivery, 8.2 Cloudflare Access/WAF rules, 8.4 remaining negative matrices beyond the smoke set, 8.5 mobile QR scan check, 9.4 JSON-LD/sitemap, 10.1 full Drizzle Studio embed (interim Super-Admin SQL console shipped), 10.4 destructive-op warning banner.
 
 **Note:** guard rails live in route loaders/actions (RBAC helpers) rather than a standalone `app/middleware.ts`; audit writes cover login/lead/pricing/discount/override/accept/DB-console statements.

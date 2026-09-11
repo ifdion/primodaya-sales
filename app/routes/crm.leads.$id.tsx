@@ -82,7 +82,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     await logAudit(db, account.id, "ASSIGN_PRICING", "lead", lead.id, JSON.stringify(parsed.data));
 
     const emailOk = await sendManagerNotification({
-      email: env.EMAIL,
+      apiKey: env.BREVO_API_KEY,
       from: env.EMAIL_FROM,
       managerEmail: current.manager?.email ?? "",
       leadName: lead.leadName,

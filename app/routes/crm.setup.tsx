@@ -7,6 +7,7 @@ import { getEnv } from "../lib/platform";
 import { hashPassword } from "../lib/password";
 import { loginAccount } from "../lib/auth.server";
 import { logAudit } from "../lib/audit.server";
+import { PasswordInput } from "../components/password-input";
 
 export async function loader({ context }: LoaderFunctionArgs) {
   const env = getEnv(context);
@@ -77,9 +78,8 @@ export default function Setup() {
             placeholder="WhatsApp number e.g. 6281234567890"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
-          <input
+          <PasswordInput
             name="password"
-            type="password"
             required
             minLength={10}
             placeholder="Password (min 10 chars)"

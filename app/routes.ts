@@ -3,6 +3,8 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 export default [
   index("routes/home.tsx"),
   route("crm/login", "routes/crm.login.tsx"),
+  route("crm/forgot-password", "routes/crm.forgot-password.tsx"),
+  route("crm/reset-password/:token", "routes/crm.reset-password.$token.tsx"),
   route("crm/setup", "routes/crm.setup.tsx"),
   route("crm/invite/:token", "routes/crm.invite.$token.tsx"),
   route("crm/logout", "routes/crm.logout.ts"),
@@ -17,5 +19,6 @@ export default [
   route("verify/:id", "routes/verify.$id.tsx"),
   route("api/pdf/:offerId", "routes/api.pdf.$offerId.ts"),
   route("db", "routes/db.tsx"),
+  route("favicon.ico", "routes/favicon.ico.ts"),
   route("robots.txt", "routes/robots.txt.ts"),
 ] satisfies RouteConfig;

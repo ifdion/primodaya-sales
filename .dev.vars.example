@@ -1,7 +1,13 @@
 # primodaya-crm — sample environment variables
 # Copy to `.dev.vars` for local dev and set equivalents via `wrangler secret put` / Pages vars.
-# NOTE: `DB` (D1) and `EMAIL` (Email Sending) bindings are wired in `wrangler.jsonc`, NOT env vars.
-# The values below match `wrangler.jsonc` defaults; uncomment/override locally as needed.
+# NOTE: `DB` (D1) binding is wired in `wrangler.jsonc`, NOT env vars.
+# Brevo transactional email needs an API key (SMTP & API key section in Brevo):
+#   local:      paste into .dev.vars as BREVO_API_KEY=xkeysib-...
+#   production: npx wrangler secret put BREVO_API_KEY   (never in wrangler.jsonc)
+
+# Brevo API key (SECRET)
+#BREVO_API_KEY=xkeysib-REPLACE-ME
+
 
 # Canonical app URL (drives WhatsApp deep links, QR targets, emails) — PRD §1.1
 #APP_URL=https://primodaya.gladia98.com
@@ -11,7 +17,7 @@
 #MAX_MANAGER_DISCOUNT=25
 
 # Transactional email sender (must be a verified Email Sending address) — PRD §8.1
-#EMAIL_FROM=no-reply@primodaya.gladia98.com
+EMAIL_FROM=no-reply-primodaya@gladia98.com
 
 # Super Admin WhatsApp number for acceptance redirects — PRD §8.3
 #SUPER_ADMIN_WHATSAPP=6281234567890

@@ -10,6 +10,10 @@ export const accounts = sqliteTable("accounts", {
   role: text("role", {
     enum: ["SUPER_ADMIN", "SALES_MANAGER", "SALES"],
   }).notNull(),
+  active: integer("active", { mode: "boolean" })
+    .default(true)
+    .notNull(),
+  managerId: text("manager_id").references((): any => accounts.id),
   createdBy: text("created_by"),
   createdAt: integer("created_at", { mode: "timestamp" }).default(
     sql`(CURRENT_TIMESTAMP)`,
@@ -78,7 +82,20 @@ export const invites = sqliteTable("invites", {
   email: text("email").notNull(),
   name: text("name").notNull(),
   role: text("role", { enum: ["SALES_MANAGER", "SALES"] }).notNull(),
+  managerId: text("manager_id").references(() => accounts.id),
   createdById: text("created_by_id")
+    .notNull()
+    .references(() => accounts.id),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  usedAt: integer("used_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(
+    sql`(CURRENT_TIMESTAMP)`,
+  ),
+});
+
+export const passwordResets = sqliteTable("password_resets", {
+  token: text("token").primaryKey(),
+  accountId: text("account_id")
     .notNull()
     .references(() => accounts.id),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),

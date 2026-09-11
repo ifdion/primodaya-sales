@@ -7,6 +7,7 @@ import { getEnv } from "../lib/platform";
 import { hashPassword } from "../lib/password";
 import { loginAccount } from "../lib/auth.server";
 import { logAudit } from "../lib/audit.server";
+import { PasswordInput } from "../components/password-input";
 
 async function loadInvite({ request, context }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -44,6 +45,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     email: invite.email,
     phone: String(form.get("phone") ?? "").trim() || null,
     role: invite.role,
+    managerId: invite.managerId ?? null,
     passwordHash: await hashPassword(password),
     createdBy: invite.createdById,
   });
@@ -89,9 +91,8 @@ export default function Invite() {
             placeholder="WhatsApp number (used for proposal links)"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
-          <input
+          <PasswordInput
             name="password"
-            type="password"
             required
             minLength={10}
             placeholder="Password (min 10 chars)"

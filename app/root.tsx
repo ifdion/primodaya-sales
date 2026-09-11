@@ -1,6 +1,7 @@
 import {
   isRouteErrorResponse,
   Links,
+  type LinkDescriptor,
   Meta,
   Outlet,
   Scripts,
@@ -8,6 +9,10 @@ import {
 } from "react-router";
 
 import "./app.css";
+
+export function links(): LinkDescriptor[] {
+  return [{ rel: "icon", href: "/favicon.ico", type: "image/svg+xml" }];
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

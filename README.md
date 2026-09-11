@@ -1,6 +1,6 @@
 # primodaya-crm
 
-Integrated energy-ecosystem CRM (React 19 + Vite SSR + Cloudflare Workers + D1 + Drizzle + Tailwind 4).
+Integrated energy-ecosystem CRM (React 19 + Vite SSR + Cloudflare Workers + D1 + Drizzle + Tailwind 4 + Brevo email).
 One app, three surfaces: landing `/`, CRM `/crm/*`, DB console `/db/*` — see `PRD.md` §1.1. Task state: `TASKS.md`.
 
 ## Local development
@@ -31,7 +31,8 @@ invite URL is also printed in the flash message if delivery fails.
 ## Go-live checklist (needs a Cloudflare account)
 
 1. `npx wrangler d1 create primodaya-crm-db` → paste the real `database_id` into `wrangler.jsonc`.
-2. Verify the sending address/domain for Cloudflare Email Sending; keep `EMAIL_FROM` aligned.
+2. In Brevo: verify the sender address/domain used by `EMAIL_FROM` and copy the SMTP & API key,
+   then `npx wrangler secret put BREVO_API_KEY` (locally: add it to `.dev.vars`).
 3. `npm run build && npx wrangler deploy`, then attach custom domain `primodaya.gladia98.com`.
 4. Set production vars/secrets (`wrangler secret put` where needed): `MAX_SALES_DISCOUNT=10`,
    `MAX_MANAGER_DISCOUNT=25`, `SUPER_ADMIN_WHATSAPP`, `APP_URL=https://primodaya.gladia98.com`.

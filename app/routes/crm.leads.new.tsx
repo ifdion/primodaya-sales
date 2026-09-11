@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { accounts, leads } from "../../db/schema";
 import { getDb } from "../lib/db";
 import { getEnv } from "../lib/platform";
@@ -15,7 +15,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const env = getEnv(context);
   const db = getDb(env);
   let reps: { id: string; name: string }[] = [];
-  if (account.role === "SALES_MANAGER" || account.role === "SUPER_ADMIN") {
+  if (account.role === "SALES_MANAGER") {
+    reps = await db
+      .select({ id: accounts.id, name: accounts.name })
+      .from(accounts)
+      .where(and(eq(accounts.role, "SALES"), eq(accounts.managerId, account.id)))
+      .all();
+  } else if (account.role === "SUPER_ADMIN") {
     reps = await db
       .select({ id: accounts.id, name: accounts.name })
       .from(accounts)
@@ -51,10 +57,17 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
   const rep = await db.query.accounts.findFirst({ where: eq(accounts.id, salesRepId) });
   if (!rep || rep.role !== "SALES") return { error: "Assigned representative not found." };
-  const salesManagerId =
-    rep.createdBy ?? (account.role === "SALES_MANAGER" ? account.id : null);
+  let salesManagerId = rep.managerId ?? rep.createdBy ?? null;
+  if (salesManagerId) {
+    const mgr = await db.query.accounts.findFirst({ where: eq(accounts.id, salesManagerId) });
+    if (mgr?.role !== "SALES_MANAGER") {
+      salesManagerId = account.role === "SALES_MANAGER" ? account.id : null;
+    }
+  } else if (account.role === "SALES_MANAGER") {
+    salesManagerId = account.id;
+  }
   if (!salesManagerId) {
-    return { error: "This representative has no Sales Manager. Ask Super Admin to re-invite them." };
+    return { error: "This representative has no Sales Manager. Ask Super Admin to assign one on the Team page." };
   }
 
   const id = crypto.randomUUID();

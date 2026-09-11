@@ -2,7 +2,7 @@ interface Env extends CloudflareEnv {}
 
 interface CloudflareEnv {
   DB: D1Database;
-  EMAIL: SendEmail;
+  BREVO_API_KEY: string;
   APP_URL: string;
   MAX_SALES_DISCOUNT: string;
   MAX_MANAGER_DISCOUNT: string;
