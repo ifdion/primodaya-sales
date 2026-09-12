@@ -26,7 +26,7 @@
     "MAX_SALES_DISCOUNT": "10",
     "MAX_MANAGER_DISCOUNT": "25",
     "DB_ADMIN_ENABLED": "false",
-    "EMAIL_FROM": "no-reply@primodaya.gladia98.com",
+    "EMAIL_FROM": "no-reply-primodaya@gladia98.com",
     "SUPER_ADMIN_WHATSAPP": "628112336000",
   },
 }
