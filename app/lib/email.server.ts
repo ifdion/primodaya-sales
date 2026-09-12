@@ -59,6 +59,31 @@ export async function sendManagerNotification({
   });
 }
 
+export async function sendLeadCreatedAlert({
+  apiKey,
+  from,
+  adminEmail,
+  leadName,
+  salesName,
+  pricingUrl,
+}: {
+  apiKey: string;
+  from: string;
+  adminEmail: string;
+  leadName: string;
+  salesName: string;
+  pricingUrl: string;
+}): Promise<boolean> {
+  return sendBrevo({
+    apiKey,
+    to: adminEmail,
+    fromEmail: from,
+    fromName: "Primodaya CRM",
+    subject: `[Pricing Needed] New Lead Created for ${leadName}`,
+    html: `<p>A new lead <strong>${leadName}</strong> (Sales Rep: ${salesName}) was created and is pending pricing.</p><p>Please assign the price and validity here: <a href="${pricingUrl}">${pricingUrl}</a></p>`,
+  });
+}
+
 export async function sendPasswordReset({
   apiKey,
   from,

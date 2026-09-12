@@ -51,7 +51,8 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const account = requireAccount(await getAccountForRequest(request, context));
   const row = await fetchLead(params.id!, context);
   assertVisible(account, row.lead);
-  return { account, ...row };
+  const alert = new URL(request.url).searchParams.get("alert");
+  return { account, alert, ...row };
 }
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
@@ -175,7 +176,7 @@ function WaLinkBox({ url }: { url: string }) {
 }
 
 export default function LeadDetail() {
-  const { lead, rep, manager, account } = useLoaderData<typeof loader>();
+  const { lead, rep, manager, account, alert } = useLoaderData<typeof loader>();
   const data = useActionData<typeof action>();
   const tier = TIERS[lead.productTier as keyof typeof TIERS];
   const finalPrice = lead.price
@@ -198,6 +199,11 @@ export default function LeadDetail() {
 
       {data && "error" in data ? (
         <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{data.error}</p>
+      ) : null}
+      {alert === "pricing-email-failed" ? (
+        <p className="rounded bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          Lead created, but the Super Admin pricing notification email failed to send. Please notify them manually.
+        </p>
       ) : null}
       {data && "flash" in data ? (
         <p className="rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{data.flash}</p>

@@ -1,12 +1,14 @@
+import { useEffect, useRef } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
+import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from "react-router";
 import { and, eq } from "drizzle-orm";
 import { accounts, leads } from "../../db/schema";
 import { getDb } from "../lib/db";
 import { getEnv } from "../lib/platform";
 import { getAccountForRequest, requireAccount } from "../lib/auth.server";
 import { leadInputSchema } from "../lib/validation.server";
-import { newOfferId } from "../lib/links";
+import { base, newOfferId } from "../lib/links";
+import { sendLeadCreatedAlert } from "../lib/email.server";
 import { logAudit } from "../lib/audit.server";
 import { TIER_IDS } from "../lib/catalog";
 
@@ -80,7 +82,22 @@ export async function action({ request, context }: ActionFunctionArgs) {
     status: "PENDING_PRICING",
   });
   await logAudit(db, account.id, "CREATE_LEAD", "lead", id);
-  return redirect(`/crm/leads/${id}`);
+
+  const admin = await db.query.accounts.findFirst({
+    where: eq(accounts.role, "SUPER_ADMIN"),
+  });
+  let alertOk = false;
+  if (admin) {
+    alertOk = await sendLeadCreatedAlert({
+      apiKey: env.BREVO_API_KEY,
+      from: env.EMAIL_FROM,
+      adminEmail: admin.email,
+      leadName: parsed.data.leadName,
+      salesName: rep.name,
+      pricingUrl: `${base(env)}/crm/leads/${id}`,
+    });
+  }
+  return redirect(`/crm/leads/${id}${alertOk || !admin ? "" : "?alert=pricing-email-failed"}`);
 }
 
 const input = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
@@ -88,13 +105,33 @@ const input = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
 export default function NewLead() {
   const data = useActionData<typeof action>();
   const { account, reps } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const submitted = useRef(false);
+  const isSubmitting =
+    navigation.state === "submitting" && Boolean(navigation.formAction?.includes("/crm/leads/new"));
+  const busy = isSubmitting || (navigation.state === "loading" && submitted.current);
+
+  useEffect(() => {
+    if (navigation.state === "idle") submitted.current = false;
+  }, [navigation.state]);
+
   return (
     <div className="max-w-xl">
       <h1 className="text-xl font-bold">Create lead</h1>
       <p className="mt-1 text-sm text-slate-500">
         Saved as <code>PENDING_PRICING</code> until Super Admin assigns baseline price.
       </p>
-      <Form method="post" className="mt-6 grid grid-cols-2 gap-4">
+      <Form
+        method="post"
+        className="mt-6 grid grid-cols-2 gap-4"
+        onSubmit={(event) => {
+          if (submitted.current || isSubmitting) {
+            event.preventDefault();
+            return;
+          }
+          submitted.current = true;
+        }}
+      >
         <label className="col-span-2 block text-sm font-medium">
           Lead name
           <input name="leadName" required className={input} />
@@ -150,9 +187,32 @@ export default function NewLead() {
         <div className="col-span-2 flex gap-3">
           <button
             type="submit"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Create lead
+            {busy ? (
+              <svg
+                className="h-4 w-4 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"
+                />
+              </svg>
+            ) : null}
+            {busy ? "Creating lead…" : "Create lead"}
           </button>
           <Link
             to="/crm/dashboard"
