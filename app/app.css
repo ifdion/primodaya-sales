@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.flow {
+  stroke-dasharray: 8 8;
+  animation: flow-dash 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow {
+    animation: none;
+  }
+}

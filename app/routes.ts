@@ -15,6 +15,7 @@ export default [
     route("leads/:id", "routes/crm.leads.$id.tsx"),
     route("team", "routes/crm.team.tsx"),
   ]),
+  route("landing-page-1", "routes/landing-page-1.tsx"),
   route("offering/:id", "routes/offering.$id.tsx"),
   route("verify/:id", "routes/verify.$id.tsx"),
   route("api/pdf/:offerId", "routes/api.pdf.$offerId.ts"),
