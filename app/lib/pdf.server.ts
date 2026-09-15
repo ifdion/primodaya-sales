@@ -1,6 +1,6 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import qrcode from "qrcode-generator";
-import { TIERS, formatIdr } from "./catalog";
+import { proposalRows } from "./proposal";
 import { verifyUrl } from "./links";
 import type { leads } from "../../db/schema";
 
@@ -22,68 +22,90 @@ export async function renderProposalPdf(
   const dark = rgb(0.1, 0.12, 0.16);
   const accent = rgb(0.02, 0.49, 0.35);
   const gray = rgb(0.4, 0.42, 0.45);
+  const gold = rgb(0.79, 0.64, 0.27);
 
-  page.drawText("PRIMODAYA", { x: margin, y, size: 26, font: bold, color: accent });
-  y -= 18;
-  page.drawText("Integrated Energy Ecosystem — Offer Proposal", {
-    x: margin,
-    y,
-    size: 12,
-    font,
-    color: gray,
-  });
-  y -= 36;
+  const wrap = (text: string, maxW: number, f: PDFFont, size: number): string[] => {
+    const lines: string[] = [];
+    let cur = "";
+    for (const w of text.split(" ")) {
+      if (cur && f.widthOfTextAtSize(`${cur} ${w}`, size) > maxW) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = cur ? `${cur} ${w}` : w;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
 
   const line = (label: string, value: string, size = 10) => {
     page.drawText(label, { x: margin, y, size, font: bold, color: dark });
-    page.drawText(value, { x: margin + 150, y, size, font, color: dark });
+    const valueX = margin + 150;
+    const lines = wrap(value, 595.28 - margin - valueX, font, size);
+    lines.forEach((l, i) => {
+      page.drawText(l, { x: valueX, y: y - i * (size + 3), size, font, color: dark });
+    });
+    y -= lines.length * (size + 4);
+  };
+
+  const section = (title: string) => {
+    y -= 10;
+    page.drawText(title, { x: margin, y, size: 11, font: bold, color: accent });
     y -= 16;
   };
 
-  page.drawText("CUSTOMER", { x: margin, y, size: 11, font: bold, color: accent });
-  y -= 16;
-  line("Lead", lead.leadName);
-  line("Email", lead.leadEmail);
-  line("Phone", lead.leadPhone);
-  line("Vehicle", `${lead.evBrand} ${lead.evModel}`);
-  line("Target purchase", lead.purchaseDate);
-  y -= 14;
-
-  const tier = TIERS[lead.productTier as keyof typeof TIERS];
-  page.drawText("PACKAGE", { x: margin, y, size: 11, font: bold, color: accent });
-  y -= 16;
-  line("Tier", `${tier.id} — ${tier.positioning}`);
-  line("EV Wallbox Charger", tier.charger);
-  line("Battery Storage", tier.battery);
-  line("Hybrid Inverter", tier.inverter);
-  line("Solar Panel Array", `${tier.panels} — ${tier.dailyYieldKwh}`);
-  y -= 14;
-
-  page.drawText("PRICING", { x: margin, y, size: 11, font: bold, color: accent });
-  y -= 16;
-  const price = lead.price ?? tier.listPriceIdr;
-  const discount = lead.discount ?? 0;
-  const final = Math.round(price * (1 - discount / 100));
-  line("Baseline price", formatIdr(price));
-  line("Discount", `${discount}%`);
-  page.drawText("FINAL PRICE", { x: margin, y, size: 13, font: bold, color: dark });
-  page.drawText(formatIdr(final), {
-    x: margin + 150,
-    y,
-    size: 13,
-    font: bold,
-    color: accent,
+  // logo banner (ponytail: drawn stand-in, embed real logo PNG when provided)
+  page.drawRectangle({ x: margin, y: y - 30, width: 260, height: 34, color: dark });
+  page.drawText("PRIMODAYA", { x: margin + 12, y: y - 20, size: 20, font: bold, color: gold });
+  page.drawRectangle({
+    x: margin + 272,
+    y: y - 26,
+    width: 80,
+    height: 26,
+    borderColor: gray,
+    borderWidth: 1,
+    color: rgb(0.95, 0.95, 0.95),
   });
-  y -= 16;
-  line("Valid until", lead.validityDate ?? "—");
-  y -= 24;
+  page.drawText("LOGO", { x: margin + 296, y: y - 18, size: 9, font, color: gray });
+  y -= 34 + 14;
+  page.drawText("REFINED, CLEAN, SAFE, INDEPENDENT ENERGY", {
+    x: margin,
+    y,
+    size: 10,
+    font: bold,
+    color: dark,
+  });
+  y -= 10;
 
+  const { customer, pkg, pricing } = proposalRows(lead);
+
+  section("CUSTOMER INFORMATION");
+  customer.forEach((r) => line(r.label, r.value));
+
+  section("PACKAGE");
+  page.drawRectangle({
+    x: 595.28 - margin - 70,
+    y: y + 2,
+    width: 70,
+    height: 16,
+    borderColor: gray,
+    borderWidth: 1,
+    color: rgb(0.95, 0.95, 0.95),
+  });
+  page.drawText("SOLIS LOGO", { x: 595.28 - margin - 62, y: y + 7, size: 7, font, color: gray });
+  pkg.forEach((r) => line(r.label, r.value));
+
+  section("PRICING");
+  pricing.forEach((r) => line(r.label, r.value));
+
+  y -= 14;
   page.drawText(
-    "This proposal is valid until the date above. Scan the QR code to verify",
+    "This proposal is valid until the date above. Scan the QR code to verify authenticity and",
     { x: margin, y, size: 9, font, color: gray },
   );
   y -= 12;
-  page.drawText("authenticity and accept the offer instantly via WhatsApp.", {
+  page.drawText("accept the offer instantly via WhatsApp.", {
     x: margin,
     y,
     size: 9,
@@ -91,15 +113,29 @@ export async function renderProposalPdf(
     color: gray,
   });
 
+  y -= 26;
+  page.drawText("Payment only Valid Through", { x: margin, y, size: 10, font: bold, color: dark });
+  y -= 14;
+  page.drawText("BCA XXX XXX XXXX", { x: margin, y, size: 10, font: bold, color: dark });
+  y -= 14;
+  page.drawText("PT Gladia 98 Bakti Cemerlang", {
+    x: margin,
+    y,
+    size: 10,
+    font: bold,
+    color: dark,
+  });
+  y -= 16;
+
   const url = verifyUrl(env, lead.offerId);
   const qr = qrcode(0, "M");
   qr.addData(url);
   qr.make();
   const count = qr.getModuleCount();
-  const qrSize = 150;
+  const qrSize = 130;
   const cell = qrSize / count;
   const qrX = margin;
-  const qrY = y - 20 - qrSize;
+  const qrY = y - qrSize;
   for (let row = 0; row < count; row++) {
     for (let col = 0; col < count; col++) {
       if (qr.isDark(row, col)) {
